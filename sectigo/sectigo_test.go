@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
+	"strings"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -1173,4 +1174,200 @@ func TestRoundTrip(t *testing.T) {
 	var result map[string]string
 	_ = json.Unmarshal(body, &result)
 	assert.Equal(t, "value", result["key"])
+}
+
+func TestListSSL(t *testing.T) {
+	mockClient := NewMockClient()
+	defer mockClient.Close()
+
+	mockClient.Mux.HandleFunc("/api/ssl/v1", func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "GET", r.Method)
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("X-Total-Count", "1")
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode([]SSLCertificate{
+			{
+				SSLId:                 1,
+				CommonName:            "example.com",
+				SubjectAlternativeNames: []string{"example.com", "www.example.com"},
+				SerialNumber:          "1234567890",
+			},
+		})
+	})
+
+	client := NewClient(Config{
+		URL:      mockClient.Server.URL,
+		Username: "test",
+		Customer: "test",
+		Password: "test",
+		Debug:    false,
+	})
+	client.Client = mockClient.Client
+
+	ctx := context.Background()
+	sslCertificates, err := client.ListSSL(ctx, ListSSLParams{
+		Size:             10,
+		Position:         0,
+		CommonName:       "example.com",
+		Status:           "validated",
+		OrgId:            1,
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(sslCertificates.SSLCertificates))
+	assert.Equal(t, 1, sslCertificates.TotalCount)
+	assert.Equal(t, "example.com", sslCertificates.SSLCertificates[0].CommonName)
+}
+
+func TestListSSL_Error(t *testing.T) {
+	mockClient := NewMockClient()
+	defer mockClient.Close()
+
+	mockClient.Mux.HandleFunc("/api/ssl/v1", func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "GET", r.Method)
+		w.WriteHeader(http.StatusInternalServerError)
+	})
+
+	client := NewClient(Config{
+		URL:      mockClient.Server.URL,
+		Username: "test",
+		Customer: "test",
+		Password: "test",
+		Debug:    false,
+	})
+	client.Client = mockClient.Client
+
+	ctx := context.Background()
+	_, err := client.ListSSL(ctx, ListSSLParams{Size: 10, Position: 0})
+	assert.Error(t, err)
+}
+
+func TestListAllSSL(t *testing.T) {
+	mockClient := NewMockClient()
+	defer mockClient.Close()
+
+	mockClient.Mux.HandleFunc("/api/ssl/v1", func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "GET", r.Method)
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("X-Total-Count", "1")
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode([]SSLCertificate{
+			{
+				SSLId:                 1,
+				CommonName:            "example.com",
+				SubjectAlternativeNames: []string{"example.com", "www.example.com"},
+				SerialNumber:          "1234567890",
+			},
+		})
+	})
+
+	client := NewClient(Config{
+		URL:      mockClient.Server.URL,
+		Username: "test",
+		Customer: "test",
+		Password: "test",
+		Debug:    false,
+	})
+	client.Client = mockClient.Client
+
+	ctx := context.Background()
+	sslCertificates, err := client.ListAllSSL(ctx, ListSSLParams{Size: 10, Position: 0})
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(sslCertificates))
+	assert.Equal(t, "example.com", sslCertificates[0].CommonName)
+}
+
+func TestListAllSSL_Error(t *testing.T) {
+	mockClient := NewMockClient()
+	defer mockClient.Close()
+
+	mockClient.Mux.HandleFunc("/api/ssl/v1", func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "GET", r.Method)
+		w.WriteHeader(http.StatusInternalServerError)
+	})
+
+	client := NewClient(Config{
+		URL:      mockClient.Server.URL,
+		Username: "test",
+		Customer: "test",
+		Password: "test",
+		Debug:    false,
+	})
+	client.Client = mockClient.Client
+
+	ctx := context.Background()
+	_, err := client.ListAllSSL(ctx, ListSSLParams{Size: 10, Position: 0})
+	assert.Error(t, err)
+}
+
+func TestRevokeSSLById(t *testing.T) {
+	mockClient := NewMockClient()
+	defer mockClient.Close()
+
+	mockClient.Mux.HandleFunc("/api/ssl/v1/revoke/1", func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "POST", r.Method)
+		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+
+		var reqBody map[string]string
+		err := json.NewDecoder(r.Body).Decode(&reqBody)
+		assert.NoError(t, err)
+		assert.Equal(t, "test reason", reqBody["reason"])
+
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	client := NewClient(Config{
+		URL:      mockClient.Server.URL,
+		Username: "test",
+		Customer: "test",
+		Password: "test",
+		Debug:    false,
+	})
+	client.Client = mockClient.Client
+
+	ctx := context.Background()
+	err := client.RevokeSSLById(ctx, 1, "test reason")
+	assert.NoError(t, err)
+}
+
+func TestRevokeSSLById_Error(t *testing.T) {
+	mockClient := NewMockClient()
+	defer mockClient.Close()
+
+	mockClient.Mux.HandleFunc("/api/ssl/v1/revoke/1", func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "POST", r.Method)
+		w.WriteHeader(http.StatusInternalServerError)
+	})
+
+	client := NewClient(Config{
+		URL:      mockClient.Server.URL,
+		Username: "test",
+		Customer: "test",
+		Password: "test",
+		Debug:    false,
+	})
+	client.Client = mockClient.Client
+
+	ctx := context.Background()
+	err := client.RevokeSSLById(ctx, 1, "test reason")
+	assert.Error(t, err)
+}
+
+func TestRevokeSSLById_InvalidReason(t *testing.T) {
+	client := NewClient(Config{
+		URL:      "http://example.com",
+		Username: "test",
+		Customer: "test",
+		Password: "test",
+		Debug:    false,
+	})
+
+	ctx := context.Background()
+	err := client.RevokeSSLById(ctx, 1, "")
+	assert.Error(t, err)
+	assert.Equal(t, "reason must be between 1 and 512 characters", err.Error())
+
+	longReason := strings.Repeat("a", 513)
+	err = client.RevokeSSLById(ctx, 1, longReason)
+	assert.Error(t, err)
+	assert.Equal(t, "reason must be between 1 and 512 characters", err.Error())
 }

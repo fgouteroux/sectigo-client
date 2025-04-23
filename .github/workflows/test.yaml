@@ -31,5 +31,5 @@ jobs:
       with:
         version: v1.60
 
-    - name: Format
+    - name: Run Test
       run: make test

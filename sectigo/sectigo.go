@@ -908,3 +908,201 @@ func (c *Client) AddAcmeAccountDomains(ctx context.Context, params AcmeAccountDo
 
 	return nil
 }
+
+type ListSSLParams struct {
+	Size                  int
+	Position              int
+	CommonName            string
+	SubjectAlternativeName string
+	Status                string
+	SSLTypeId             int
+	DiscoveryStatus       string
+	Vendor                string
+	OrgId                 int
+	InstallStatus         string
+	RenewalStatus         string
+	Issuer                string
+	SerialNumber          string
+	Requester             string
+	ExternalRequester     string
+	SignatureAlgorithm    string
+	KeyAlgorithm          string
+	KeySize               int
+	Sha1Hash              string
+	Md5Hash               string
+	KeyUsage              string
+	ExtendedKeyUsage      string
+	RequestedVia          string
+}
+
+type SSLCertificate struct {
+	SSLId                 int      `json:"sslId"`
+	CommonName            string   `json:"commonName"`
+	SubjectAlternativeNames []string `json:"subjectAlternativeNames"`
+	SerialNumber          string   `json:"serialNumber"`
+}
+
+type ListSSLResponse struct {
+	SSLCertificates []SSLCertificate
+	TotalCount      int
+}
+
+func (c *Client) ListSSL(ctx context.Context, params ListSSLParams) (*ListSSLResponse, error) {
+	baseURL, err := url.Parse(fmt.Sprintf("%s/api/ssl/v1", c.BaseURL))
+	if err != nil {
+		return nil, fmt.Errorf("error parsing base URL: %v", err)
+	}
+
+	queryParams := url.Values{}
+	queryParams.Add("size", fmt.Sprintf("%d", params.Size))
+	queryParams.Add("position", fmt.Sprintf("%d", params.Position))
+	if params.CommonName != "" {
+		queryParams.Add("commonName", params.CommonName)
+	}
+	if params.SubjectAlternativeName != "" {
+		queryParams.Add("subjectAlternativeName", params.SubjectAlternativeName)
+	}
+	if params.Status != "" {
+		queryParams.Add("status", params.Status)
+	}
+	if params.SSLTypeId > 0 {
+		queryParams.Add("sslTypeId", fmt.Sprintf("%d", params.SSLTypeId))
+	}
+	if params.DiscoveryStatus != "" {
+		queryParams.Add("discoveryStatus", params.DiscoveryStatus)
+	}
+	if params.Vendor != "" {
+		queryParams.Add("vendor", params.Vendor)
+	}
+	if params.OrgId > 0 {
+		queryParams.Add("orgId", fmt.Sprintf("%d", params.OrgId))
+	}
+	if params.InstallStatus != "" {
+		queryParams.Add("installStatus", params.InstallStatus)
+	}
+	if params.RenewalStatus != "" {
+		queryParams.Add("renewalStatus", params.RenewalStatus)
+	}
+	if params.Issuer != "" {
+		queryParams.Add("issuer", params.Issuer)
+	}
+	if params.SerialNumber != "" {
+		queryParams.Add("serialNumber", params.SerialNumber)
+	}
+	if params.Requester != "" {
+		queryParams.Add("requester", params.Requester)
+	}
+	if params.ExternalRequester != "" {
+		queryParams.Add("externalRequester", params.ExternalRequester)
+	}
+	if params.SignatureAlgorithm != "" {
+		queryParams.Add("signatureAlgorithm", params.SignatureAlgorithm)
+	}
+	if params.KeyAlgorithm != "" {
+		queryParams.Add("keyAlgorithm", params.KeyAlgorithm)
+	}
+	if params.KeySize > 0 {
+		queryParams.Add("keySize", fmt.Sprintf("%d", params.KeySize))
+	}
+	if params.Sha1Hash != "" {
+		queryParams.Add("sha1Hash", params.Sha1Hash)
+	}
+	if params.Md5Hash != "" {
+		queryParams.Add("md5Hash", params.Md5Hash)
+	}
+	if params.KeyUsage != "" {
+		queryParams.Add("keyUsage", params.KeyUsage)
+	}
+	if params.ExtendedKeyUsage != "" {
+		queryParams.Add("extendedKeyUsage", params.ExtendedKeyUsage)
+	}
+	if params.RequestedVia != "" {
+		queryParams.Add("requestedVia", params.RequestedVia)
+	}
+	baseURL.RawQuery = queryParams.Encode()
+
+	req, err := http.NewRequestWithContext(ctx, "GET", baseURL.String(), nil)
+	if err != nil {
+		return nil, fmt.Errorf("error creating request: %v", err)
+	}
+
+	resp, body, err := c.sendRequest(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	var sslCertificates []SSLCertificate
+	err = json.Unmarshal(body, &sslCertificates)
+	if err != nil {
+		return nil, fmt.Errorf("error unmarshalling response: %v", err)
+	}
+
+	listSSLResponse := ListSSLResponse{SSLCertificates: sslCertificates}
+	totalCountHeader := resp.Header.Get("X-Total-Count")
+	if totalCountHeader != "" {
+		listSSLResponse.TotalCount, _ = strconv.Atoi(totalCountHeader)
+	}
+
+	return &listSSLResponse, nil
+}
+
+func (c *Client) ListAllSSL(ctx context.Context, params ListSSLParams) ([]SSLCertificate, error) {
+	var allSSLCertificates []SSLCertificate
+	position := 0
+	size := 200
+
+	for {
+		params.Position = position
+		params.Size = size
+		listSSLResponse, err := c.ListSSL(ctx, params)
+		if err != nil {
+			return nil, err
+		}
+
+		allSSLCertificates = append(allSSLCertificates, listSSLResponse.SSLCertificates...)
+
+		if len(listSSLResponse.SSLCertificates) < params.Size || position+params.Size >= listSSLResponse.TotalCount {
+			break
+		}
+
+		position += params.Size
+	}
+
+	return allSSLCertificates, nil
+}
+
+type RevokeSSLParams struct {
+	SSLId  int    `json:"sslId"`
+	Reason string `json:"reason"`
+}
+
+func (c *Client) RevokeSSLById(ctx context.Context, sslId int, reason string) error {
+	if reason == "" || len(reason) > 512 {
+		return fmt.Errorf("reason must be between 1 and 512 characters")
+	}
+
+	url := fmt.Sprintf("%s/api/ssl/v1/revoke/%d", c.BaseURL, sslId)
+	reqBody := map[string]string{"reason": reason}
+	reqBodyJSON, err := json.Marshal(reqBody)
+	if err != nil {
+		return fmt.Errorf("error marshalling request body: %v", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(reqBodyJSON))
+	if err != nil {
+		return fmt.Errorf("error creating request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.Client.Do(req)
+	if err != nil {
+		return fmt.Errorf("error sending request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent {
+		return fmt.Errorf("failed to revoke SSL certificate: %s", resp.Status)
+	}
+
+	return nil
+}
