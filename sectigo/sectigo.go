@@ -311,7 +311,7 @@ func (c *Client) sendRequest(ctx context.Context, req *http.Request) (*http.Resp
 	req = req.WithContext(ctx)
 	resp, err := c.Client.Do(req)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error making request: %v", err)
+		return nil, nil, fmt.Errorf("error making request: %w", err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
@@ -320,7 +320,7 @@ func (c *Client) sendRequest(ctx context.Context, req *http.Request) (*http.Resp
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error reading response body: %v", err)
+		return nil, nil, fmt.Errorf("error reading response body: %w", err)
 	}
 
 	return resp, body, nil
@@ -331,7 +331,7 @@ func (c *Client) GetDomainDetails(ctx context.Context, domainID int) (*DomainDet
 	url := fmt.Sprintf("%s/api/domain/v1/%d", c.BaseURL, domainID)
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
-		return nil, fmt.Errorf("error creating request: %v", err)
+		return nil, fmt.Errorf("error creating request: %w", err)
 	}
 
 	_, body, err := c.sendRequest(ctx, req)
@@ -342,7 +342,7 @@ func (c *Client) GetDomainDetails(ctx context.Context, domainID int) (*DomainDet
 	var domainDetails DomainDetails
 	err = json.Unmarshal(body, &domainDetails)
 	if err != nil {
-		return nil, fmt.Errorf("error unmarshalling response: %v", err)
+		return nil, fmt.Errorf("error unmarshalling response: %w", err)
 	}
 
 	return &domainDetails, nil
@@ -353,17 +353,17 @@ func (c *Client) CreateDomain(ctx context.Context, domainRequest DomainRequest) 
 	url := fmt.Sprintf("%s/api/domain/v1", c.BaseURL)
 	jsonPayload, err := json.Marshal(domainRequest)
 	if err != nil {
-		return fmt.Errorf("error marshalling JSON: %v", err)
+		return fmt.Errorf("error marshalling JSON: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonPayload))
 	if err != nil {
-		return fmt.Errorf("error creating request: %v", err)
+		return fmt.Errorf("error creating request: %w", err)
 	}
 
 	resp, err := c.Client.Do(req)
 	if err != nil {
-		return fmt.Errorf("error making request: %v", err)
+		return fmt.Errorf("error making request: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -379,12 +379,12 @@ func (c *Client) DeleteDomain(ctx context.Context, domainID int) error {
 	url := fmt.Sprintf("%s/api/domain/v1/%d", c.BaseURL, domainID)
 	req, err := http.NewRequestWithContext(ctx, "DELETE", url, nil)
 	if err != nil {
-		return fmt.Errorf("error creating request: %v", err)
+		return fmt.Errorf("error creating request: %w", err)
 	}
 
 	resp, err := c.Client.Do(req)
 	if err != nil {
-		return fmt.Errorf("error making request: %v", err)
+		return fmt.Errorf("error making request: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -400,17 +400,17 @@ func (c *Client) ApproveDelegation(ctx context.Context, domainID int, approveReq
 	url := fmt.Sprintf("%s/api/domain/v1/%d/delegation/approve", c.BaseURL, domainID)
 	jsonPayload, err := json.Marshal(approveRequest)
 	if err != nil {
-		return fmt.Errorf("error marshalling JSON: %v", err)
+		return fmt.Errorf("error marshalling JSON: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonPayload))
 	if err != nil {
-		return fmt.Errorf("error creating request: %v", err)
+		return fmt.Errorf("error creating request: %w", err)
 	}
 
 	resp, err := c.Client.Do(req)
 	if err != nil {
-		return fmt.Errorf("error making request: %v", err)
+		return fmt.Errorf("error making request: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -426,17 +426,17 @@ func (c *Client) DelegateDomain(ctx context.Context, delegateRequest DelegateDom
 	url := fmt.Sprintf("%s/api/domain/v1/delegation", c.BaseURL)
 	jsonPayload, err := json.Marshal(delegateRequest)
 	if err != nil {
-		return fmt.Errorf("error marshalling JSON: %v", err)
+		return fmt.Errorf("error marshalling JSON: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonPayload))
 	if err != nil {
-		return fmt.Errorf("error creating request: %v", err)
+		return fmt.Errorf("error creating request: %w", err)
 	}
 
 	resp, err := c.Client.Do(req)
 	if err != nil {
-		return fmt.Errorf("error making request: %v", err)
+		return fmt.Errorf("error making request: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -451,7 +451,7 @@ func (c *Client) DelegateDomain(ctx context.Context, delegateRequest DelegateDom
 func (c *Client) ListDomain(ctx context.Context, params ListDomainParams) (*ListDomainResponse, error) {
 	baseURL, err := url.Parse(fmt.Sprintf("%s/api/domain/v1", c.BaseURL))
 	if err != nil {
-		return nil, fmt.Errorf("error parsing base URL: %v", err)
+		return nil, fmt.Errorf("error parsing base URL: %w", err)
 	}
 
 	queryParams := url.Values{}
@@ -473,7 +473,7 @@ func (c *Client) ListDomain(ctx context.Context, params ListDomainParams) (*List
 
 	req, err := http.NewRequestWithContext(ctx, "GET", baseURL.String(), nil)
 	if err != nil {
-		return nil, fmt.Errorf("error creating request: %v", err)
+		return nil, fmt.Errorf("error creating request: %w", err)
 	}
 
 	resp, body, err := c.sendRequest(ctx, req)
@@ -484,7 +484,7 @@ func (c *Client) ListDomain(ctx context.Context, params ListDomainParams) (*List
 	var domains []Domain
 	err = json.Unmarshal(body, &domains)
 	if err != nil {
-		return nil, fmt.Errorf("error unmarshalling response: %v", err)
+		return nil, fmt.Errorf("error unmarshalling response: %w", err)
 	}
 
 	listDomainResponse := ListDomainResponse{Domains: domains}
@@ -527,12 +527,12 @@ func (c *Client) StartDomainCNameValidation(ctx context.Context, request StartDo
 	url := fmt.Sprintf("%s/api/dcv/v1/validation/start/domain/cname", c.BaseURL)
 	jsonPayload, err := json.Marshal(request)
 	if err != nil {
-		return nil, fmt.Errorf("error marshalling JSON: %v", err)
+		return nil, fmt.Errorf("error marshalling JSON: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonPayload))
 	if err != nil {
-		return nil, fmt.Errorf("error creating request: %v", err)
+		return nil, fmt.Errorf("error creating request: %w", err)
 	}
 
 	_, body, err := c.sendRequest(ctx, req)
@@ -543,7 +543,7 @@ func (c *Client) StartDomainCNameValidation(ctx context.Context, request StartDo
 	var validationResponse StartDomainCNameValidationResponse
 	err = json.Unmarshal(body, &validationResponse)
 	if err != nil {
-		return nil, fmt.Errorf("error unmarshalling response: %v", err)
+		return nil, fmt.Errorf("error unmarshalling response: %w", err)
 	}
 
 	return &validationResponse, nil
@@ -554,12 +554,12 @@ func (c *Client) SubmitDomainCNameValidation(ctx context.Context, request Submit
 	url := fmt.Sprintf("%s/api/dcv/v1/validation/submit/domain/cname", c.BaseURL)
 	jsonPayload, err := json.Marshal(request)
 	if err != nil {
-		return nil, fmt.Errorf("error marshalling JSON: %v", err)
+		return nil, fmt.Errorf("error marshalling JSON: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonPayload))
 	if err != nil {
-		return nil, fmt.Errorf("error creating request: %v", err)
+		return nil, fmt.Errorf("error creating request: %w", err)
 	}
 
 	_, body, err := c.sendRequest(ctx, req)
@@ -570,7 +570,7 @@ func (c *Client) SubmitDomainCNameValidation(ctx context.Context, request Submit
 	var validationResponse SubmitDomainCNameValidationResponse
 	err = json.Unmarshal(body, &validationResponse)
 	if err != nil {
-		return nil, fmt.Errorf("error unmarshalling response: %v", err)
+		return nil, fmt.Errorf("error unmarshalling response: %w", err)
 	}
 
 	return &validationResponse, nil
@@ -581,12 +581,12 @@ func (c *Client) GetDomainValidationStatus(ctx context.Context, request GetDomai
 	url := fmt.Sprintf("%s/api/dcv/v2/validation/status", c.BaseURL)
 	jsonPayload, err := json.Marshal(request)
 	if err != nil {
-		return nil, fmt.Errorf("error marshalling JSON: %v", err)
+		return nil, fmt.Errorf("error marshalling JSON: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonPayload))
 	if err != nil {
-		return nil, fmt.Errorf("error creating request: %v", err)
+		return nil, fmt.Errorf("error creating request: %w", err)
 	}
 
 	_, body, err := c.sendRequest(ctx, req)
@@ -597,7 +597,7 @@ func (c *Client) GetDomainValidationStatus(ctx context.Context, request GetDomai
 	var validationResponse GetDomainValidationStatusResponse
 	err = json.Unmarshal(body, &validationResponse)
 	if err != nil {
-		return nil, fmt.Errorf("error unmarshalling response: %v", err)
+		return nil, fmt.Errorf("error unmarshalling response: %w", err)
 	}
 
 	return &validationResponse, nil
@@ -627,7 +627,7 @@ func (c *Client) CheckDomainValidationStatus(ctx context.Context, domain string,
 func (c *Client) ListDomainValidation(ctx context.Context, params ListDomainValidationParams) (*ListDomainValidationResponse, error) {
 	baseURL, err := url.Parse(fmt.Sprintf("%s/api/dcv/v1/validation", c.BaseURL))
 	if err != nil {
-		return nil, fmt.Errorf("error parsing base URL: %v", err)
+		return nil, fmt.Errorf("error parsing base URL: %w", err)
 	}
 
 	queryParams := url.Values{}
@@ -655,7 +655,7 @@ func (c *Client) ListDomainValidation(ctx context.Context, params ListDomainVali
 
 	req, err := http.NewRequestWithContext(ctx, "GET", baseURL.String(), nil)
 	if err != nil {
-		return nil, fmt.Errorf("error creating request: %v", err)
+		return nil, fmt.Errorf("error creating request: %w", err)
 	}
 
 	resp, body, err := c.sendRequest(ctx, req)
@@ -666,7 +666,7 @@ func (c *Client) ListDomainValidation(ctx context.Context, params ListDomainVali
 	var domainsValidation []DomainValidation
 	err = json.Unmarshal(body, &domainsValidation)
 	if err != nil {
-		return nil, fmt.Errorf("error unmarshalling response: %v", err)
+		return nil, fmt.Errorf("error unmarshalling response: %w", err)
 	}
 
 	listDomainValidationResponse := ListDomainValidationResponse{Domains: domainsValidation}
@@ -709,7 +709,7 @@ func (c *Client) ListOrganization(ctx context.Context) (*ListOrganizationRespons
 	url := fmt.Sprintf("%s/api/organization/v1", c.BaseURL)
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
-		return nil, fmt.Errorf("error creating request: %v", err)
+		return nil, fmt.Errorf("error creating request: %w", err)
 	}
 
 	_, body, err := c.sendRequest(ctx, req)
@@ -720,7 +720,7 @@ func (c *Client) ListOrganization(ctx context.Context) (*ListOrganizationRespons
 	var listOrganizationResponse ListOrganizationResponse
 	err = json.Unmarshal(body, &listOrganizationResponse)
 	if err != nil {
-		return nil, fmt.Errorf("error unmarshalling response: %v", err)
+		return nil, fmt.Errorf("error unmarshalling response: %w", err)
 	}
 
 	return &listOrganizationResponse, nil
@@ -730,7 +730,7 @@ func (c *Client) ListOrganization(ctx context.Context) (*ListOrganizationRespons
 func (c *Client) ListAcmeAccount(ctx context.Context, params ListAcmeAccountParams) (*ListAcmeAccountResponse, error) {
 	baseURL, err := url.Parse(fmt.Sprintf("%s/api/acme/v2/account", c.BaseURL))
 	if err != nil {
-		return nil, fmt.Errorf("error parsing base URL: %v", err)
+		return nil, fmt.Errorf("error parsing base URL: %w", err)
 	}
 
 	queryParams := url.Values{}
@@ -765,7 +765,7 @@ func (c *Client) ListAcmeAccount(ctx context.Context, params ListAcmeAccountPara
 	var accounts []AcmeAccount
 	err = json.Unmarshal(body, &accounts)
 	if err != nil {
-		return nil, fmt.Errorf("error unmarshalling response: %v", err)
+		return nil, fmt.Errorf("error unmarshalling response: %w", err)
 	}
 
 	listAcmeAccountResponse := ListAcmeAccountResponse{Accounts: accounts}
@@ -807,7 +807,7 @@ func (c *Client) ListAllAcmeAccount(ctx context.Context, params ListAcmeAccountP
 func (c *Client) ListAcmeAccountDomain(ctx context.Context, params ListAcmeAccountDomainParams) (*ListAcmeAccountDomainResponse, error) {
 	baseURL, err := url.Parse(fmt.Sprintf("%s/api/acme/v2/account/%d/domain", c.BaseURL, params.AccountID))
 	if err != nil {
-		return nil, fmt.Errorf("error parsing base URL: %v", err)
+		return nil, fmt.Errorf("error parsing base URL: %w", err)
 	}
 
 	queryParams := url.Values{}
@@ -839,7 +839,7 @@ func (c *Client) ListAcmeAccountDomain(ctx context.Context, params ListAcmeAccou
 	var domains []AcmeAccountDomain
 	err = json.Unmarshal(body, &domains)
 	if err != nil {
-		return nil, fmt.Errorf("error unmarshalling response: %v", err)
+		return nil, fmt.Errorf("error unmarshalling response: %w", err)
 	}
 
 	listAcmeAccountDomainResponse := ListAcmeAccountDomainResponse{Domains: domains}
@@ -888,17 +888,17 @@ func (c *Client) AddAcmeAccountDomains(ctx context.Context, params AcmeAccountDo
 
 	jsonPayload, err := json.Marshal(domains)
 	if err != nil {
-		return fmt.Errorf("error marshalling JSON: %v", err)
+		return fmt.Errorf("error marshalling JSON: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonPayload))
 	if err != nil {
-		return fmt.Errorf("error creating request: %v", err)
+		return fmt.Errorf("error creating request: %w", err)
 	}
 
 	resp, err := c.Client.Do(req)
 	if err != nil {
-		return fmt.Errorf("error making request: %v", err)
+		return fmt.Errorf("error making request: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -950,7 +950,7 @@ type ListSSLResponse struct {
 func (c *Client) ListSSL(ctx context.Context, params ListSSLParams) (*ListSSLResponse, error) {
 	baseURL, err := url.Parse(fmt.Sprintf("%s/api/ssl/v1", c.BaseURL))
 	if err != nil {
-		return nil, fmt.Errorf("error parsing base URL: %v", err)
+		return nil, fmt.Errorf("error parsing base URL: %w", err)
 	}
 
 	queryParams := url.Values{}
@@ -1023,7 +1023,7 @@ func (c *Client) ListSSL(ctx context.Context, params ListSSLParams) (*ListSSLRes
 
 	req, err := http.NewRequestWithContext(ctx, "GET", baseURL.String(), nil)
 	if err != nil {
-		return nil, fmt.Errorf("error creating request: %v", err)
+		return nil, fmt.Errorf("error creating request: %w", err)
 	}
 
 	resp, body, err := c.sendRequest(ctx, req)
@@ -1034,7 +1034,7 @@ func (c *Client) ListSSL(ctx context.Context, params ListSSLParams) (*ListSSLRes
 	var sslCertificates []SSLCertificate
 	err = json.Unmarshal(body, &sslCertificates)
 	if err != nil {
-		return nil, fmt.Errorf("error unmarshalling response: %v", err)
+		return nil, fmt.Errorf("error unmarshalling response: %w", err)
 	}
 
 	listSSLResponse := ListSSLResponse{SSLCertificates: sslCertificates}
@@ -1085,18 +1085,18 @@ func (c *Client) RevokeSSLById(ctx context.Context, sslId int, reason string) er
 	reqBody := map[string]string{"reason": reason}
 	reqBodyJSON, err := json.Marshal(reqBody)
 	if err != nil {
-		return fmt.Errorf("error marshalling request body: %v", err)
+		return fmt.Errorf("error marshalling request body: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(reqBodyJSON))
 	if err != nil {
-		return fmt.Errorf("error creating request: %v", err)
+		return fmt.Errorf("error creating request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.Client.Do(req)
 	if err != nil {
-		return fmt.Errorf("error sending request: %v", err)
+		return fmt.Errorf("error sending request: %w", err)
 	}
 	defer resp.Body.Close()
 
