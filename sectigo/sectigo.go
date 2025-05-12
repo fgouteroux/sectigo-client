@@ -1270,17 +1270,17 @@ func validateUpdateSSLDetailsRequest(request UpdateSSLDetailsRequest) error {
 	}
 
 	// Validate term if provided
-	if request.Term < 1 {
+	if request.Term != 0 && request.Term < 1 {
 		return fmt.Errorf("term must be at least 1")
 	}
 
 	// Validate certTypeId if provided
-	if request.CertTypeId < 1 {
+	if request.CertTypeId != 0 && request.CertTypeId < 1 {
 		return fmt.Errorf("certTypeId must be at least 1")
 	}
 
 	// Validate orgId if provided
-	if request.OrgId < 1 {
+	if request.OrgId != 0 && request.OrgId < 1 {
 		return fmt.Errorf("orgId must be at least 1")
 	}
 
@@ -1324,12 +1324,12 @@ func validateUpdateSSLDetailsRequest(request UpdateSSLDetailsRequest) error {
 	}
 
 	// Validate requesterAdminId if provided
-	if request.RequesterAdminId < 1 {
+	if request.RequesterAdminId != 0 && request.RequesterAdminId < 1 {
 		return fmt.Errorf("requesterAdminId must be at least 1")
 	}
 
 	// Validate approverAdminId if provided
-	if request.ApproverAdminId < -1 {
+	if request.ApproverAdminId != 0 && request.ApproverAdminId < -1 {
 		return fmt.Errorf("approverAdminId must be at least -1")
 	}
 
