@@ -1207,6 +1207,22 @@ type AutoRenewDetails struct {
 	DaysBeforeExpiration int    `json:"daysBeforeExpiration"`
 }
 
+// MarshalJSON implements json.Marshaler for AutoRenewDetails
+func (a AutoRenewDetails) MarshalJSON() ([]byte, error) {
+	// If both State and DaysBeforeExpiration are empty, return null
+	if a.State == "" && a.DaysBeforeExpiration == 0 {
+		return []byte("null"), nil
+	}
+
+	// Otherwise, use the default marshaling
+	type Alias AutoRenewDetails
+	return json.Marshal(&struct {
+		*Alias
+	}{
+		Alias: (*Alias)(&a),
+	})
+}
+
 // GetSSLDetails retrieves detailed information about an SSL certificate
 func (c *Client) GetSSLDetails(ctx context.Context, sslId int) (*SSLDetails, error) {
 	// Construct the URL
@@ -1255,7 +1271,7 @@ type UpdateSSLDetailsRequest struct {
 	Comments                string           `json:"comments,omitempty"`
 	SubjectAlternativeNames []string         `json:"subjectAlternativeNames,omitempty"`
 	CustomFields            []CustomField    `json:"customFields,omitempty"`
-	AutoRenewDetails        AutoRenewDetails `json:"autoRenewDetails,omitempty"`
+	AutoRenewDetails        *AutoRenewDetails `json:"autoRenewDetails,omitempty"`
 	SuspendNotifications    bool             `json:"suspendNotifications,omitempty"`
 	Requester               string           `json:"requester,omitempty"`
 	RequesterAdminId        int              `json:"requesterAdminId,omitempty"`
@@ -1314,13 +1330,15 @@ func validateUpdateSSLDetailsRequest(request UpdateSSLDetailsRequest) error {
 	}
 
 	// Validate autoRenewDetails if provided
-	if request.AutoRenewDetails.State != "" {
-		if request.AutoRenewDetails.State != "Not scheduled" && request.AutoRenewDetails.State != "Scheduled" {
-			return fmt.Errorf("autoRenewDetails.state allowed values are 'Not scheduled' and 'Scheduled'")
+	if request.AutoRenewDetails != nil {
+		if request.AutoRenewDetails.State != "" {
+			if request.AutoRenewDetails.State != "Not scheduled" && request.AutoRenewDetails.State != "Scheduled" {
+				return fmt.Errorf("autoRenewDetails.state allowed values are 'Not scheduled' and 'Scheduled'")
+			}
 		}
-	}
-	if request.AutoRenewDetails.DaysBeforeExpiration != 0 && request.AutoRenewDetails.DaysBeforeExpiration < 1 {
-		return fmt.Errorf("autoRenewDetails.daysBeforeExpiration must be at least 1")
+		if request.AutoRenewDetails.DaysBeforeExpiration != 0 && request.AutoRenewDetails.DaysBeforeExpiration < 1 {
+			return fmt.Errorf("autoRenewDetails.daysBeforeExpiration must be at least 1")
+		}
 	}
 
 	// Validate requesterAdminId if provided

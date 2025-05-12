@@ -1489,7 +1489,7 @@ func TestUpdateSSLDetails(t *testing.T) {
 		CommonName:              "ccmqa.com",
 		Comments:                "some comments",
 		SubjectAlternativeNames: []string{"ccmqa.com"},
-		AutoRenewDetails: AutoRenewDetails{
+		AutoRenewDetails: &AutoRenewDetails{
 			State:                "Not scheduled",
 			DaysBeforeExpiration: 30,
 		},
@@ -1603,7 +1603,7 @@ func TestValidateUpdateSSLDetailsRequest(t *testing.T) {
 			name: "invalid autoRenewDetails state",
 			request: UpdateSSLDetailsRequest{
 				SSLId: 1740,
-				AutoRenewDetails: AutoRenewDetails{
+				AutoRenewDetails: &AutoRenewDetails{
 					State: "Invalid",
 				},
 			},
