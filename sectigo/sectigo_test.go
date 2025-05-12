@@ -6,9 +6,9 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
-	"strings"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -1187,10 +1187,10 @@ func TestListSSL(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		_ = json.NewEncoder(w).Encode([]SSLCertificate{
 			{
-				SSLId:                 1,
-				CommonName:            "example.com",
+				SSLId:                   1,
+				CommonName:              "example.com",
 				SubjectAlternativeNames: []string{"example.com", "www.example.com"},
-				SerialNumber:          "1234567890",
+				SerialNumber:            "1234567890",
 			},
 		})
 	})
@@ -1206,11 +1206,11 @@ func TestListSSL(t *testing.T) {
 
 	ctx := context.Background()
 	sslCertificates, err := client.ListSSL(ctx, ListSSLParams{
-		Size:             10,
-		Position:         0,
-		CommonName:       "example.com",
-		Status:           "validated",
-		OrgId:            1,
+		Size:       10,
+		Position:   0,
+		CommonName: "example.com",
+		Status:     "validated",
+		OrgId:      1,
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(sslCertificates.SSLCertificates))
@@ -1252,10 +1252,10 @@ func TestListAllSSL(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		_ = json.NewEncoder(w).Encode([]SSLCertificate{
 			{
-				SSLId:                 1,
-				CommonName:            "example.com",
+				SSLId:                   1,
+				CommonName:              "example.com",
 				SubjectAlternativeNames: []string{"example.com", "www.example.com"},
-				SerialNumber:          "1234567890",
+				SerialNumber:            "1234567890",
 			},
 		})
 	})
@@ -1370,4 +1370,322 @@ func TestRevokeSSLById_InvalidReason(t *testing.T) {
 	err = client.RevokeSSLById(ctx, 1, longReason)
 	assert.Error(t, err)
 	assert.Equal(t, "reason must be between 1 and 512 characters", err.Error())
+}
+
+func TestGetSSLDetails(t *testing.T) {
+	mockClient := NewMockClient()
+	defer mockClient.Close()
+
+	mockClient.Mux.HandleFunc("/api/ssl/v1/1638", func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "GET", r.Method)
+		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(SSLDetails{
+			CommonName:   "example.com",
+			SSLId:        1638,
+			Id:           1638,
+			Status:       "Issued",
+			Vendor:       "Sectigo",
+			RequestedVia: "ACME",
+			SerialNumber: "1234567890",
+			// Add other fields as needed
+		})
+	})
+
+	client := NewClient(Config{
+		URL:      mockClient.Server.URL,
+		Username: "test",
+		Customer: "test",
+		Password: "test",
+		Debug:    false,
+	})
+	client.Client = mockClient.Client
+
+	ctx := context.Background()
+	sslDetails, err := client.GetSSLDetails(ctx, 1638)
+	assert.NoError(t, err)
+	assert.NotNil(t, sslDetails)
+	assert.Equal(t, "example.com", sslDetails.CommonName)
+	assert.Equal(t, 1638, sslDetails.SSLId)
+	assert.Equal(t, "Issued", sslDetails.Status)
+}
+
+func TestGetSSLDetails_Error(t *testing.T) {
+	mockClient := NewMockClient()
+	defer mockClient.Close()
+
+	mockClient.Mux.HandleFunc("/api/ssl/v1/1638", func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "GET", r.Method)
+		w.WriteHeader(http.StatusInternalServerError)
+	})
+
+	client := NewClient(Config{
+		URL:      mockClient.Server.URL,
+		Username: "test",
+		Customer: "test",
+		Password: "test",
+		Debug:    false,
+	})
+	client.Client = mockClient.Client
+
+	ctx := context.Background()
+	_, err := client.GetSSLDetails(ctx, 1638)
+	assert.Error(t, err)
+}
+
+func TestUpdateSSLDetails(t *testing.T) {
+	mockClient := NewMockClient()
+	defer mockClient.Close()
+
+	mockClient.Mux.HandleFunc("/api/ssl/v1", func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "PUT", r.Method)
+		assert.Equal(t, "application/json;charset=UTF-8", r.Header.Get("Content-Type"))
+		assert.Equal(t, "application/json", r.Header.Get("Accept"))
+
+		var request UpdateSSLDetailsRequest
+		err := json.NewDecoder(r.Body).Decode(&request)
+		assert.NoError(t, err)
+		assert.Equal(t, 1740, request.SSLId)
+		assert.Equal(t, 365, request.Term)
+		assert.Equal(t, 5108, request.CertTypeId)
+		assert.Equal(t, 10548, request.OrgId)
+		assert.Equal(t, "ccmqa.com", request.CommonName)
+		assert.Equal(t, "some comments", request.Comments)
+		assert.Equal(t, []string{"ccmqa.com"}, request.SubjectAlternativeNames)
+		assert.Equal(t, "Not scheduled", request.AutoRenewDetails.State)
+		assert.Equal(t, 30, request.AutoRenewDetails.DaysBeforeExpiration)
+
+		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(SSLDetails{
+			CommonName:   "ccmqa.com",
+			SSLId:        1740,
+			Id:           1740,
+			Status:       "Requested",
+			Vendor:       "Vendor",
+			RequestedVia: "Enrollment Form",
+			Comments:     "some comments",
+			// Add other fields as needed
+		})
+	})
+
+	client := NewClient(Config{
+		URL:      mockClient.Server.URL,
+		Username: "test",
+		Customer: "test",
+		Password: "test",
+		Debug:    false,
+	})
+	client.Client = mockClient.Client
+
+	ctx := context.Background()
+	sslDetails, err := client.UpdateSSLDetails(ctx, UpdateSSLDetailsRequest{
+		SSLId:                   1740,
+		Term:                    365,
+		RequesterAdminId:        1,
+		ApproverAdminId:         -1,
+		CertTypeId:              5108,
+		OrgId:                   10548,
+		CommonName:              "ccmqa.com",
+		Comments:                "some comments",
+		SubjectAlternativeNames: []string{"ccmqa.com"},
+		AutoRenewDetails: AutoRenewDetails{
+			State:                "Not scheduled",
+			DaysBeforeExpiration: 30,
+		},
+	})
+	assert.NoError(t, err)
+	assert.NotNil(t, sslDetails)
+	assert.Equal(t, "ccmqa.com", sslDetails.CommonName)
+	assert.Equal(t, 1740, sslDetails.SSLId)
+	assert.Equal(t, "Requested", sslDetails.Status)
+}
+
+func TestUpdateSSLDetails_Error(t *testing.T) {
+	mockClient := NewMockClient()
+	defer mockClient.Close()
+
+	mockClient.Mux.HandleFunc("/api/ssl/v1", func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "PUT", r.Method)
+		w.WriteHeader(http.StatusInternalServerError)
+	})
+
+	client := NewClient(Config{
+		URL:      mockClient.Server.URL,
+		Username: "test",
+		Customer: "test",
+		Password: "test",
+		Debug:    false,
+	})
+	client.Client = mockClient.Client
+
+	ctx := context.Background()
+	_, err := client.UpdateSSLDetails(ctx, UpdateSSLDetailsRequest{
+		SSLId: 1740,
+	})
+	assert.Error(t, err)
+}
+
+func TestValidateUpdateSSLDetailsRequest(t *testing.T) {
+	tests := []struct {
+		name        string
+		request     UpdateSSLDetailsRequest
+		expectedErr string
+	}{
+		{
+			name: "valid request",
+			request: UpdateSSLDetailsRequest{
+				SSLId:            1740,
+				OrgId:            1,
+				Term:             1,
+				CertTypeId:       1,
+				RequesterAdminId: 1,
+				ApproverAdminId:  -1,
+			},
+			expectedErr: "",
+		},
+		{
+			name: "invalid SSLId",
+			request: UpdateSSLDetailsRequest{
+				SSLId:            0,
+				OrgId:            1,
+				Term:             1,
+				CertTypeId:       1,
+				RequesterAdminId: 1,
+				ApproverAdminId:  -1,
+			},
+			expectedErr: "sslId must be at least 1",
+		},
+		{
+			name: "invalid term",
+			request: UpdateSSLDetailsRequest{
+				SSLId:            1740,
+				OrgId:            1,
+				Term:             0,
+				CertTypeId:       1,
+				RequesterAdminId: 1,
+				ApproverAdminId:  -1,
+			},
+			expectedErr: "term must be at least 1",
+		},
+		{
+			name: "invalid certTypeId",
+			request: UpdateSSLDetailsRequest{
+				SSLId:            1740,
+				OrgId:            1,
+				Term:             1,
+				CertTypeId:       0,
+				RequesterAdminId: 1,
+				ApproverAdminId:  -1,
+			},
+			expectedErr: "certTypeId must be at least 1",
+		},
+		{
+			name: "invalid orgId",
+			request: UpdateSSLDetailsRequest{
+				SSLId:            1740,
+				OrgId:            0,
+				Term:             1,
+				CertTypeId:       1,
+				RequesterAdminId: 1,
+				ApproverAdminId:  -1,
+			},
+			expectedErr: "orgId must be at least 1",
+		},
+		{
+			name: "invalid CSR",
+			request: UpdateSSLDetailsRequest{
+				SSLId:            1740,
+				OrgId:            1,
+				Term:             1,
+				CertTypeId:       1,
+				RequesterAdminId: 1,
+				ApproverAdminId:  -1,
+				CSR:              "invalid_csr!",
+			},
+			expectedErr: "csr must match the regular expression [a-zA-Z0-9-+=\\/\\s]+",
+		},
+		{
+			name: "invalid comments",
+			request: UpdateSSLDetailsRequest{
+				SSLId:            1740,
+				OrgId:            1,
+				Term:             1,
+				CertTypeId:       1,
+				RequesterAdminId: 1,
+				ApproverAdminId:  -1,
+				Comments:         strings.Repeat("a", 1025),
+			},
+			expectedErr: "comments maximum length is 1024 characters or can be empty",
+		},
+		{
+			name: "invalid custom field name",
+			request: UpdateSSLDetailsRequest{
+				SSLId:            1740,
+				OrgId:            1,
+				Term:             1,
+				CertTypeId:       1,
+				RequesterAdminId: 1,
+				ApproverAdminId:  -1,
+				CustomFields: []CustomField{
+					{
+						Name:  "",
+						Value: "value",
+					},
+				},
+			},
+			expectedErr: "custom field name must not be null",
+		},
+		{
+			name: "invalid autoRenewDetails state",
+			request: UpdateSSLDetailsRequest{
+				SSLId:            1740,
+				OrgId:            1,
+				Term:             1,
+				CertTypeId:       1,
+				RequesterAdminId: 1,
+				ApproverAdminId:  -1,
+				AutoRenewDetails: AutoRenewDetails{
+					State: "Invalid",
+				},
+			},
+			expectedErr: "autoRenewDetails.state allowed values are 'Not scheduled' and 'Scheduled'",
+		},
+		{
+			name: "invalid requesterAdminId",
+			request: UpdateSSLDetailsRequest{
+				SSLId:            1740,
+				OrgId:            1,
+				Term:             1,
+				CertTypeId:       1,
+				RequesterAdminId: 0,
+				ApproverAdminId:  -1,
+			},
+			expectedErr: "requesterAdminId must be at least 1",
+		},
+		{
+			name: "invalid approverAdminId",
+			request: UpdateSSLDetailsRequest{
+				SSLId:            1740,
+				OrgId:            1,
+				Term:             1,
+				CertTypeId:       1,
+				RequesterAdminId: 1,
+				ApproverAdminId:  -2,
+			},
+			expectedErr: "approverAdminId must be at least -1",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateUpdateSSLDetailsRequest(tt.request)
+			if tt.expectedErr == "" {
+				assert.NoError(t, err)
+			} else {
+				assert.Error(t, err)
+				assert.Equal(t, tt.expectedErr, err.Error())
+			}
+		})
+	}
 }

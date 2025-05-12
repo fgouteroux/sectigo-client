@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strconv"
 	"time"
 )
@@ -910,36 +911,37 @@ func (c *Client) AddAcmeAccountDomains(ctx context.Context, params AcmeAccountDo
 }
 
 type ListSSLParams struct {
-	Size                  int
-	Position              int
-	CommonName            string
+	Size                   int
+	Position               int
+	CommonName             string
 	SubjectAlternativeName string
-	Status                string
-	SSLTypeId             int
-	DiscoveryStatus       string
-	Vendor                string
-	OrgId                 int
-	InstallStatus         string
-	RenewalStatus         string
-	Issuer                string
-	SerialNumber          string
-	Requester             string
-	ExternalRequester     string
-	SignatureAlgorithm    string
-	KeyAlgorithm          string
-	KeySize               int
-	Sha1Hash              string
-	Md5Hash               string
-	KeyUsage              string
-	ExtendedKeyUsage      string
-	RequestedVia          string
+	Status                 string
+	SSLTypeId              int
+	DiscoveryStatus        string
+	Vendor                 string
+	OrgId                  int
+	InstallStatus          string
+	RenewalStatus          string
+	Issuer                 string
+	SerialNumber           string
+	Requester              string
+	ExternalRequester      string
+	SignatureAlgorithm     string
+	KeyAlgorithm           string
+	KeySize                int
+	KeyParam               string
+	Sha1Hash               string
+	Md5Hash                string
+	KeyUsage               string
+	ExtendedKeyUsage       string
+	RequestedVia           string
 }
 
 type SSLCertificate struct {
-	SSLId                 int      `json:"sslId"`
-	CommonName            string   `json:"commonName"`
+	SSLId                   int      `json:"sslId"`
+	CommonName              string   `json:"commonName"`
 	SubjectAlternativeNames []string `json:"subjectAlternativeNames"`
-	SerialNumber          string   `json:"serialNumber"`
+	SerialNumber            string   `json:"serialNumber"`
 }
 
 type ListSSLResponse struct {
@@ -1003,6 +1005,9 @@ func (c *Client) ListSSL(ctx context.Context, params ListSSLParams) (*ListSSLRes
 	}
 	if params.KeySize > 0 {
 		queryParams.Add("keySize", fmt.Sprintf("%d", params.KeySize))
+	}
+	if params.KeyParam != "" {
+		queryParams.Add("keyParam", params.KeyParam)
 	}
 	if params.Sha1Hash != "" {
 		queryParams.Add("sha1Hash", params.Sha1Hash)
@@ -1105,4 +1110,276 @@ func (c *Client) RevokeSSLById(ctx context.Context, sslId int, reason string) er
 	}
 
 	return nil
+}
+
+// SSLDetails represents the detailed information about an SSL certificate
+type SSLDetails struct {
+	CommonName              string             `json:"commonName"`
+	SSLId                   int                `json:"sslId"`
+	Id                      int                `json:"id"`
+	OrgId                   int                `json:"orgId"`
+	Status                  string             `json:"status"`
+	OrderNumber             int                `json:"orderNumber"`
+	BackendCertId           string             `json:"backendCertId"`
+	Vendor                  string             `json:"vendor"`
+	CertType                CertType           `json:"certType"`
+	SubType                 string             `json:"subType"`
+	ValidationType          string             `json:"validationType"`
+	Term                    int                `json:"term"`
+	Owner                   string             `json:"owner"`
+	OwnerId                 int                `json:"ownerId"`
+	Requester               string             `json:"requester"`
+	RequesterId             int                `json:"requesterId"`
+	RequestedVia            string             `json:"requestedVia"`
+	ExternalRequester       string             `json:"externalRequester"`
+	Comments                string             `json:"comments"`
+	Requested               string             `json:"requested"`
+	Approved                string             `json:"approved"`
+	Issued                  string             `json:"issued"`
+	Declined                string             `json:"declined"`
+	Expires                 string             `json:"expires"`
+	Replaced                string             `json:"replaced"`
+	Revoked                 string             `json:"revoked"`
+	ReasonCode              int                `json:"reasonCode"`
+	Renewed                 bool               `json:"renewed"`
+	RenewedDate             string             `json:"renewedDate"`
+	SerialNumber            string             `json:"serialNumber"`
+	SignatureAlg            string             `json:"signatureAlg"`
+	KeyAlgorithm            string             `json:"keyAlgorithm"`
+	KeySize                 int                `json:"keySize"`
+	KeyType                 string             `json:"keyType"`
+	KeyUsages               []string           `json:"keyUsages"`
+	ExtendedKeyUsages       []string           `json:"extendedKeyUsages"`
+	SubjectAlternativeNames []string           `json:"subjectAlternativeNames"`
+	CustomFields            []CustomField      `json:"customFields"`
+	CertificateDetails      CertificateDetails `json:"certificateDetails"`
+	AutoInstallDetails      AutoInstallDetails `json:"autoInstallDetails"`
+	AutoRenewDetails        AutoRenewDetails   `json:"autoRenewDetails"`
+	SuspendNotifications    bool               `json:"suspendNotifications"`
+}
+
+// CertType represents information about the Certificate Profile
+type CertType struct {
+	Id                  int      `json:"id"`
+	UseSecondaryOrgName bool     `json:"useSecondaryOrgName"`
+	Name                string   `json:"name"`
+	Description         string   `json:"description"`
+	Terms               []int    `json:"terms"`
+	KeyTypes            KeyTypes `json:"keyTypes"`
+}
+
+// KeyTypes represents key types available for the Certificate Profile
+type KeyTypes struct {
+	RSA []string `json:"rsa"`
+	EC  []string `json:"ec"`
+}
+
+// CustomField represents a custom field
+type CustomField struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
+// CertificateDetails represents certificate details
+type CertificateDetails struct {
+	Issuer          string `json:"issuer"`
+	Subject         string `json:"subject"`
+	SubjectAltNames string `json:"subjectAltNames"`
+	Md5Hash         string `json:"md5Hash"`
+	Sha1Hash        string `json:"sha1Hash"`
+}
+
+// AutoInstallDetails represents auto-installation information
+type AutoInstallDetails struct {
+	State string     `json:"state"`
+	Nodes []NodeInfo `json:"nodes"`
+}
+
+// NodeInfo represents information about an auto-installation node
+type NodeInfo struct {
+	Name string `json:"name"`
+	Port int    `json:"port"`
+}
+
+// AutoRenewDetails represents auto-renewal information
+type AutoRenewDetails struct {
+	State                string `json:"state"`
+	DaysBeforeExpiration int    `json:"daysBeforeExpiration"`
+}
+
+// GetSSLDetails retrieves detailed information about an SSL certificate
+func (c *Client) GetSSLDetails(ctx context.Context, sslId int) (*SSLDetails, error) {
+	// Construct the URL
+	baseURL, err := url.Parse(fmt.Sprintf("%s/api/ssl/v1/%d", c.BaseURL, sslId))
+	if err != nil {
+		return nil, fmt.Errorf("error parsing base URL: %v", err)
+	}
+
+	// Create the request
+	req, err := http.NewRequestWithContext(ctx, "GET", baseURL.String(), nil)
+	if err != nil {
+		return nil, fmt.Errorf("error creating request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json;charset=UTF-8")
+
+	// Send the request
+	resp, body, err := c.sendRequest(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check the status code
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to get SSL details: %s", resp.Status)
+	}
+
+	// Parse the response
+	var sslDetails SSLDetails
+	err = json.Unmarshal(body, &sslDetails)
+	if err != nil {
+		return nil, fmt.Errorf("error unmarshalling response: %v", err)
+	}
+
+	return &sslDetails, nil
+}
+
+// UpdateSSLDetailsRequest represents the request body for updating SSL certificate details
+type UpdateSSLDetailsRequest struct {
+	SSLId                   int              `json:"sslId"`
+	Term                    int              `json:"term,omitempty"`
+	CertTypeId              int              `json:"certTypeId,omitempty"`
+	OrgId                   int              `json:"orgId,omitempty"`
+	CommonName              string           `json:"commonName,omitempty"`
+	CSR                     string           `json:"csr,omitempty"`
+	ExternalRequester       string           `json:"externalRequester,omitempty"`
+	Comments                string           `json:"comments,omitempty"`
+	SubjectAlternativeNames []string         `json:"subjectAlternativeNames,omitempty"`
+	CustomFields            []CustomField    `json:"customFields,omitempty"`
+	AutoRenewDetails        AutoRenewDetails `json:"autoRenewDetails,omitempty"`
+	SuspendNotifications    bool             `json:"suspendNotifications,omitempty"`
+	Requester               string           `json:"requester,omitempty"`
+	RequesterAdminId        int              `json:"requesterAdminId,omitempty"`
+	ApproverAdminId         int              `json:"approverAdminId,omitempty"`
+}
+
+// validateUpdateSSLDetailsRequest validates the request parameters
+func validateUpdateSSLDetailsRequest(request UpdateSSLDetailsRequest) error {
+	// Validate required fields
+	if request.SSLId < 1 {
+		return fmt.Errorf("sslId must be at least 1")
+	}
+
+	// Validate term if provided
+	if request.Term < 1 {
+		return fmt.Errorf("term must be at least 1")
+	}
+
+	// Validate certTypeId if provided
+	if request.CertTypeId < 1 {
+		return fmt.Errorf("certTypeId must be at least 1")
+	}
+
+	// Validate orgId if provided
+	if request.OrgId < 1 {
+		return fmt.Errorf("orgId must be at least 1")
+	}
+
+	// Validate CSR if provided
+	if request.CSR != "" {
+		csrRegex := regexp.MustCompile(`^[a-zA-Z0-9-+=\/\s]+$`)
+		if !csrRegex.MatchString(request.CSR) {
+			return fmt.Errorf("csr must match the regular expression [a-zA-Z0-9-+=\\/\\s]+")
+		}
+		if len(request.CSR) > 32767 {
+			return fmt.Errorf("csr size must be between 1 and 32767 inclusive")
+		}
+	}
+
+	// Validate comments if provided
+	if len(request.Comments) > 1024 {
+		return fmt.Errorf("comments maximum length is 1024 characters or can be empty")
+	}
+
+	// Validate custom fields if provided
+	for _, field := range request.CustomFields {
+		if field.Name == "" {
+			return fmt.Errorf("custom field name must not be null")
+		}
+		if len(field.Name) < 1 || len(field.Name) > 256 {
+			return fmt.Errorf("custom field name size must be between 1 and 256 inclusive")
+		}
+		if len(field.Value) > 256 {
+			return fmt.Errorf("custom field value maximum length is 256 characters or can be empty")
+		}
+	}
+
+	// Validate autoRenewDetails if provided
+	if request.AutoRenewDetails.State != "" {
+		if request.AutoRenewDetails.State != "Not scheduled" && request.AutoRenewDetails.State != "Scheduled" {
+			return fmt.Errorf("autoRenewDetails.state allowed values are 'Not scheduled' and 'Scheduled'")
+		}
+	}
+	if request.AutoRenewDetails.DaysBeforeExpiration != 0 && request.AutoRenewDetails.DaysBeforeExpiration < 1 {
+		return fmt.Errorf("autoRenewDetails.daysBeforeExpiration must be at least 1")
+	}
+
+	// Validate requesterAdminId if provided
+	if request.RequesterAdminId < 1 {
+		return fmt.Errorf("requesterAdminId must be at least 1")
+	}
+
+	// Validate approverAdminId if provided
+	if request.ApproverAdminId < -1 {
+		return fmt.Errorf("approverAdminId must be at least -1")
+	}
+
+	return nil
+}
+
+// UpdateSSLDetails updates the details of an SSL certificate
+func (c *Client) UpdateSSLDetails(ctx context.Context, request UpdateSSLDetailsRequest) (*SSLDetails, error) {
+	// First validate the request
+	if err := validateUpdateSSLDetailsRequest(request); err != nil {
+		return nil, err
+	}
+
+	// Construct the URL
+	baseURL, err := url.Parse(fmt.Sprintf("%s/api/ssl/v1", c.BaseURL))
+	if err != nil {
+		return nil, fmt.Errorf("error parsing base URL: %v", err)
+	}
+
+	// Marshal the request body
+	reqBody, err := json.Marshal(request)
+	if err != nil {
+		return nil, fmt.Errorf("error marshalling request body: %v", err)
+	}
+
+	// Create the request
+	req, err := http.NewRequestWithContext(ctx, "PUT", baseURL.String(), bytes.NewBuffer(reqBody))
+	if err != nil {
+		return nil, fmt.Errorf("error creating request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json;charset=UTF-8")
+	req.Header.Set("Accept", "application/json")
+
+	// Send the request
+	resp, body, err := c.sendRequest(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("failed request, status code: %d", resp.StatusCode)
+	}
+
+	// Check the status code
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to update SSL details: %s", resp.Status)
+	}
+
+	// Parse the response
+	var sslDetails SSLDetails
+	err = json.Unmarshal(body, &sslDetails)
+	if err != nil {
+		return nil, fmt.Errorf("error unmarshalling response: %v", err)
+	}
+
+	return &sslDetails, nil
 }
