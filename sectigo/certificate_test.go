@@ -55,7 +55,7 @@ func TestListSSL_Error(t *testing.T) {
 	mockClient.Mux.HandleFunc("/api/ssl/v1", func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "GET", r.Method)
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error":"Server error"}`))
+		w.Write([]byte(`{"error":"Server error"}`)) //nolint:errcheck
 	})
 
 	client := NewClient(Config{
@@ -144,7 +144,7 @@ func TestRevokeSSLById_Error(t *testing.T) {
 	mockClient.Mux.HandleFunc("/api/ssl/v1/revoke/1", func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "POST", r.Method)
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error":"Failed to revoke"}`))
+		w.Write([]byte(`{"error":"Failed to revoke"}`)) //nolint:errcheck
 	})
 
 	client := NewClient(Config{
@@ -229,7 +229,7 @@ func TestGetSSLDetails_Error(t *testing.T) {
 	mockClient.Mux.HandleFunc("/api/ssl/v1/1638", func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "GET", r.Method)
 		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte(`{"error":"Certificate not found"}`))
+		w.Write([]byte(`{"error":"Certificate not found"}`)) //nolint:errcheck
 	})
 
 	client := NewClient(Config{
@@ -304,7 +304,7 @@ func TestUpdateSSLDetails_Error(t *testing.T) {
 	mockClient.Mux.HandleFunc("/api/ssl/v1", func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "PUT", r.Method)
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error":"Invalid request"}`))
+		w.Write([]byte(`{"error":"Invalid request"}`)) //nolint:errcheck
 	})
 
 	client := NewClient(Config{

@@ -97,7 +97,7 @@ func (c *Client) sendRequest(ctx context.Context, req *http.Request, expectedSta
 
 	// Always read the body first
 	body, err := io.ReadAll(resp.Body)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if err != nil {
 		return resp, nil, fmt.Errorf("error reading response body: %w", err)
 	}

@@ -52,7 +52,7 @@ func TestListAcmeAccount_Error(t *testing.T) {
 	mockClient.Mux.HandleFunc("/api/acme/v2/account", func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "GET", r.Method)
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error":"Server error"}`))
+		w.Write([]byte(`{"error":"Server error"}`)) //nolint:errcheck
 	})
 
 	client := NewClient(Config{
@@ -140,7 +140,7 @@ func TestListAcmeAccountDomain_Error(t *testing.T) {
 	mockClient.Mux.HandleFunc("/api/acme/v2/account/1/domain", func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "GET", r.Method)
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error":"Server error"}`))
+		w.Write([]byte(`{"error":"Server error"}`)) //nolint:errcheck
 	})
 
 	client := NewClient(Config{
@@ -222,7 +222,7 @@ func TestAddAcmeAccountDomains_Error(t *testing.T) {
 	mockClient.Mux.HandleFunc("/api/acme/v2/account/1/domain", func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "POST", r.Method)
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"code":-993,"description":"Certificate orders currently restricted"}`))
+		w.Write([]byte(`{"code":-993,"description":"Certificate orders currently restricted"}`)) //nolint:errcheck
 	})
 
 	client := NewClient(Config{

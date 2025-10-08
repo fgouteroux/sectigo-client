@@ -50,7 +50,7 @@ func TestListOrganization_Error(t *testing.T) {
 	mockClient.Mux.HandleFunc("/api/organization/v1", func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "GET", r.Method)
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error":"Internal server error"}`))
+		w.Write([]byte(`{"error":"Internal server error"}`)) //nolint:errcheck
 	})
 
 	client := NewClient(Config{

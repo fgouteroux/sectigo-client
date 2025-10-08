@@ -96,7 +96,7 @@ func TestRoundTrip(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 	body, _ := io.ReadAll(resp.Body)
 	var result map[string]string
 	_ = json.Unmarshal(body, &result)
@@ -109,7 +109,7 @@ func TestRoundTrip_WithDebug(t *testing.T) {
 
 	mockClient.Mux.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"key":"value"}`))
+		w.Write([]byte(`{"key":"value"}`)) //nolint:errcheck
 	})
 
 	client := NewClient(Config{
@@ -133,7 +133,7 @@ func TestSendRequest_Success(t *testing.T) {
 
 	mockClient.Mux.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"message":"success"}`))
+		w.Write([]byte(`{"message":"success"}`)) //nolint:errcheck
 	})
 
 	client := NewClient(Config{
@@ -160,7 +160,7 @@ func TestSendRequest_ErrorWithBody(t *testing.T) {
 
 	mockClient.Mux.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"code":-993,"description":"Certificate orders currently restricted"}`))
+		w.Write([]byte(`{"code":-993,"description":"Certificate orders currently restricted"}`)) //nolint:errcheck
 	})
 
 	client := NewClient(Config{
@@ -187,7 +187,7 @@ func TestSendRequest_Accept2xx(t *testing.T) {
 
 	mockClient.Mux.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte(`{"message":"created"}`))
+		w.Write([]byte(`{"message":"created"}`)) //nolint:errcheck
 	})
 
 	client := NewClient(Config{
@@ -215,7 +215,7 @@ func TestSendRequest_LongBodyTruncated(t *testing.T) {
 	longBody := strings.Repeat("a", 600)
 	mockClient.Mux.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(longBody))
+		w.Write([]byte(longBody)) //nolint:errcheck
 	})
 
 	client := NewClient(Config{

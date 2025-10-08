@@ -52,7 +52,7 @@ func TestGetDomainDetails_Error(t *testing.T) {
 	mockClient.Mux.HandleFunc("/api/domain/v1/1", func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "GET", r.Method)
 		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte(`{"error":"Domain not found"}`))
+		w.Write([]byte(`{"error":"Domain not found"}`)) //nolint:errcheck
 	})
 
 	client := NewClient(Config{
@@ -105,7 +105,7 @@ func TestCreateDomain_Error(t *testing.T) {
 	mockClient.Mux.HandleFunc("/api/domain/v1", func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "POST", r.Method)
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error":"Invalid domain name"}`))
+		w.Write([]byte(`{"error":"Invalid domain name"}`)) //nolint:errcheck
 	})
 
 	client := NewClient(Config{
@@ -158,7 +158,7 @@ func TestDeleteDomain_Error(t *testing.T) {
 	mockClient.Mux.HandleFunc("/api/domain/v1/1", func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "DELETE", r.Method)
 		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte(`{"error":"Domain not found"}`))
+		w.Write([]byte(`{"error":"Domain not found"}`)) //nolint:errcheck
 	})
 
 	client := NewClient(Config{
