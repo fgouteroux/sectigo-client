@@ -75,7 +75,7 @@ func TestRoundTrip(t *testing.T) {
 		assert.Equal(t, "test", r.Header.Get("customerUri"))
 		assert.Equal(t, "test", r.Header.Get("password"))
 		assert.Equal(t, "application/json;charset=utf-8", r.Header.Get("Content-Type"))
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_ = json.NewEncoder(w).Encode(map[string]string{"key": "value"})
@@ -148,7 +148,7 @@ func TestSendRequest_Success(t *testing.T) {
 	ctx := context.Background()
 	req, _ := http.NewRequestWithContext(ctx, "GET", mockClient.Server.URL+"/test", nil)
 	resp, body, err := client.sendRequest(ctx, req, http.StatusOK)
-	
+
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 	assert.Contains(t, string(body), "success")
@@ -175,7 +175,7 @@ func TestSendRequest_ErrorWithBody(t *testing.T) {
 	ctx := context.Background()
 	req, _ := http.NewRequestWithContext(ctx, "GET", mockClient.Server.URL+"/test", nil)
 	_, _, err := client.sendRequest(ctx, req, http.StatusOK)
-	
+
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "status code: 400")
 	assert.Contains(t, err.Error(), "Certificate orders currently restricted")
@@ -202,7 +202,7 @@ func TestSendRequest_Accept2xx(t *testing.T) {
 	ctx := context.Background()
 	req, _ := http.NewRequestWithContext(ctx, "GET", mockClient.Server.URL+"/test", nil)
 	resp, body, err := client.sendRequest(ctx, req, 0) // 0 = accept any 2xx
-	
+
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusCreated, resp.StatusCode)
 	assert.Contains(t, string(body), "created")
@@ -230,7 +230,7 @@ func TestSendRequest_LongBodyTruncated(t *testing.T) {
 	ctx := context.Background()
 	req, _ := http.NewRequestWithContext(ctx, "GET", mockClient.Server.URL+"/test", nil)
 	_, _, err := client.sendRequest(ctx, req, http.StatusOK)
-	
+
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "... (truncated)")
 }

@@ -172,7 +172,7 @@ func TestRevokeSSLById_InvalidReason(t *testing.T) {
 	})
 
 	ctx := context.Background()
-	
+
 	// Test empty reason
 	err := client.RevokeSSLById(ctx, 1, "")
 	assert.Error(t, err)
@@ -266,10 +266,10 @@ func TestUpdateSSLDetails(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
 		w.WriteHeader(http.StatusOK)
 		_ = json.NewEncoder(w).Encode(SSLDetails{
-			CommonName:   "ccmqa.com",
-			SSLId:        1740,
-			Status:       "Requested",
-			Comments:     "some comments",
+			CommonName: "ccmqa.com",
+			SSLId:      1740,
+			Status:     "Requested",
+			Comments:   "some comments",
 		})
 	})
 
