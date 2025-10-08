@@ -402,6 +402,67 @@ func TestCheckDomainValidationStatus(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestCheckDomainValidationStatus_Retry(t *testing.T) {
+	mockClient := NewMockClient()
+	defer mockClient.Close()
+
+	attempt := 0
+	mockClient.Mux.HandleFunc("/api/dcv/v2/validation/status", func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "POST", r.Method)
+		w.WriteHeader(http.StatusOK)
+		if attempt < 2 {
+			_ = json.NewEncoder(w).Encode(GetDomainValidationStatusResponse{
+				Status: "NOT_VALIDATED",
+			})
+			attempt++
+		} else {
+			_ = json.NewEncoder(w).Encode(GetDomainValidationStatusResponse{
+				Status: "validated",
+			})
+		}
+	})
+
+	client := NewClient(Config{
+		URL:      mockClient.Server.URL,
+		Username: "test",
+		Customer: "test",
+		Password: "test",
+		Debug:    false,
+	})
+	client.Client = mockClient.Client
+
+	ctx := context.Background()
+	err := client.CheckDomainValidationStatus(ctx, "example.com", 5, 1*time.Millisecond)
+	assert.NoError(t, err)
+}
+
+func TestCheckDomainValidationStatus_MaxRetriesReached(t *testing.T) {
+	mockClient := NewMockClient()
+	defer mockClient.Close()
+
+	mockClient.Mux.HandleFunc("/api/dcv/v2/validation/status", func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "POST", r.Method)
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(GetDomainValidationStatusResponse{
+			Status: "NOT_VALIDATED",
+		})
+	})
+
+	client := NewClient(Config{
+		URL:      mockClient.Server.URL,
+		Username: "test",
+		Customer: "test",
+		Password: "test",
+		Debug:    false,
+	})
+	client.Client = mockClient.Client
+
+	ctx := context.Background()
+	err := client.CheckDomainValidationStatus(ctx, "example.com", 3, 1*time.Millisecond)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "max retries reached")
+}
+
 func TestListDomainValidation(t *testing.T) {
 	mockClient := NewMockClient()
 	defer mockClient.Close()

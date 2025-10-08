@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -51,6 +52,19 @@ func TestNewClient(t *testing.T) {
 	assert.False(t, client.Debug)
 }
 
+func TestNewClient_WithDebug(t *testing.T) {
+	client := NewClient(Config{
+		URL:      "https://cert-manager.com",
+		Username: "test",
+		Customer: "test",
+		Password: "test",
+		Debug:    true,
+	})
+
+	assert.NotNil(t, client)
+	assert.True(t, client.Debug)
+}
+
 func TestRoundTrip(t *testing.T) {
 	mockClient := NewMockClient()
 	defer mockClient.Close()
@@ -87,6 +101,30 @@ func TestRoundTrip(t *testing.T) {
 	var result map[string]string
 	_ = json.Unmarshal(body, &result)
 	assert.Equal(t, "value", result["key"])
+}
+
+func TestRoundTrip_WithDebug(t *testing.T) {
+	mockClient := NewMockClient()
+	defer mockClient.Close()
+
+	mockClient.Mux.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"key":"value"}`))
+	})
+
+	client := NewClient(Config{
+		URL:      mockClient.Server.URL,
+		Username: "test",
+		Customer: "test",
+		Password: "test",
+		Debug:    true,
+	})
+
+	transport := client.Client.Transport.(*authTransport)
+	req, _ := http.NewRequest("GET", mockClient.Server.URL+"/test", io.NopCloser(strings.NewReader(`{"test":"data"}`)))
+	resp, err := transport.RoundTrip(req)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
 }
 
 func TestSendRequest_Success(t *testing.T) {
@@ -174,7 +212,7 @@ func TestSendRequest_LongBodyTruncated(t *testing.T) {
 	mockClient := NewMockClient()
 	defer mockClient.Close()
 
-	longBody := string(make([]byte, 600))
+	longBody := strings.Repeat("a", 600)
 	mockClient.Mux.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(longBody))

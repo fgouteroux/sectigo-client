@@ -325,6 +325,43 @@ func TestUpdateSSLDetails_Error(t *testing.T) {
 	assert.Contains(t, err.Error(), "Invalid request")
 }
 
+func TestAutoRenewDetails_MarshalJSON(t *testing.T) {
+	tests := []struct {
+		name     string
+		details  AutoRenewDetails
+		expected string
+	}{
+		{
+			name:     "empty details returns null",
+			details:  AutoRenewDetails{},
+			expected: "null",
+		},
+		{
+			name:     "with state only",
+			details:  AutoRenewDetails{State: "Scheduled"},
+			expected: `{"state":"Scheduled","daysBeforeExpiration":0}`,
+		},
+		{
+			name:     "with days only",
+			details:  AutoRenewDetails{DaysBeforeExpiration: 30},
+			expected: `{"state":"","daysBeforeExpiration":30}`,
+		},
+		{
+			name:     "with both fields",
+			details:  AutoRenewDetails{State: "Scheduled", DaysBeforeExpiration: 30},
+			expected: `{"state":"Scheduled","daysBeforeExpiration":30}`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := json.Marshal(tt.details)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expected, string(result))
+		})
+	}
+}
+
 func TestValidateUpdateSSLDetailsRequest(t *testing.T) {
 	tests := []struct {
 		name        string
